@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		9D83449B2EDEC3B000AF7C34 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 9D83449A2EDEC3B000AF7C34 /* WhisperKit */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		9D83441B2EDD862700AF7C34 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9D83449B2EDEC3B000AF7C34 /* WhisperKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = tamakan333333;
 			packageProductDependencies = (
+				9D83449A2EDEC3B000AF7C34 /* WhisperKit */,
 			);
 			productName = tamakan333333;
 			productReference = 9D83440D2EDD862600AF7C34 /* tamakan333333.app */;
@@ -195,6 +201,9 @@
 			);
 			mainGroup = 9D8344042EDD862600AF7C34;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				9D8344992EDEC3B000AF7C34 /* XCRemoteSwiftPackageReference "WhisperKit" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9D83440E2EDD862600AF7C34 /* Products */;
 			projectDirPath = "";
@@ -400,6 +409,9 @@
 				DEVELOPMENT_TEAM = MU2TU3UB9V;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = plzzzzzzzzz;
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = plzzzzz;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -432,6 +444,9 @@
 				DEVELOPMENT_TEAM = MU2TU3UB9V;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = plzzzzzzzzz;
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = plzzzzz;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -578,6 +593,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		9D8344992EDEC3B000AF7C34 /* XCRemoteSwiftPackageReference "WhisperKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/argmaxinc/WhisperKit";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		9D83449A2EDEC3B000AF7C34 /* WhisperKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9D8344992EDEC3B000AF7C34 /* XCRemoteSwiftPackageReference "WhisperKit" */;
+			productName = WhisperKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 9D8344052EDD862600AF7C34 /* Project object */;
 }
