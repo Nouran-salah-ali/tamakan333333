@@ -10,6 +10,9 @@ import AVFoundation
 import Combine
 
 struct recView: View {
+    @Environment(\.modelContext) private var context
+   
+    
     @EnvironmentObject var recViewModel: RecViewModel
     @StateObject var audioVM = AudioRecordingViewModel()
     @State var isRecording = false
@@ -36,11 +39,16 @@ struct recView: View {
                 VStack{
                     
                     VStack(alignment: .leading){
-                        Text("Hello i'm a student at apple")
+//                        Text("Hello i'm a student at apple")
+//                            .font(.title)
+//                            .foregroundColor(.gray)
+//                        Text("and it's challenge three")
+//                            .font(.title)
+                        // HERE 👇 YOUR LIVE TRANSCRIPTION
+                        Text(audioVM.finalText.isEmpty ? "Say something..." : audioVM.finalText)
                             .font(.title)
-                            .foregroundColor(.gray)
-                        Text("and it's challenge three")
-                            .font(.title)
+                            
+                            .animation(.easeInOut, value: audioVM.finalText)
                         
                         Button(action: {
                                         audioVM.playRecording() // call your function
@@ -133,12 +141,15 @@ struct recView: View {
                 }
                 .ignoresSafeArea() // allow content to extend beyond the screen edges
             }
+            .onAppear {
+                audioVM.context = context   // ← FIXED HERE
+            }
             .navigationTitle("") // optional: empty title if you want only buttons
             .toolbarTitleDisplayMode(.inline) // correct API
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        // handle cancel
+                    NavigationLink(destination: records()) {
+                        Text("Cancel")
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -148,6 +159,7 @@ struct recView: View {
                 }
             }
         }
+
     }
 }
 

@@ -8,6 +8,8 @@
 import AVFoundation
 import Combine
 import WhisperKit
+import SwiftData
+import SwiftUI
 
 class AudioRecordingViewModel: ObservableObject {
 
@@ -25,6 +27,11 @@ class AudioRecordingViewModel: ObservableObject {
     // MARK: - Whisper model (single instance)
     private var whisper: WhisperKit?
 
+    
+    
+   // @Environment(\.presentationMode) var presentationMode
+   // @Environment(\.modelContext) private var context
+    var context: ModelContext?
     // MARK: - Init (load model only once)
     init() {
         Task {
@@ -61,6 +68,10 @@ class AudioRecordingViewModel: ObservableObject {
         let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(fileName)
         lastRecordingURL = url
+        //i created func that create object object
+        //save object in context
+        addRecord(RcordName :fileName, duration: 0.0 ,date: Date(), finalText: finalText ,url: url)
+        
 
         do {
             audioFile = try AVAudioFile(forWriting: url, settings: format.settings)
@@ -199,5 +210,36 @@ class AudioRecordingViewModel: ObservableObject {
         }
 
         return url
+    }
+    
+    
+    // MARK: - func save record in object
+
+//    func addRecord(RcordName :String, duration: Double ,date: Date, finalText: String ,url: URL) {
+//        let newRecord = RecordingModel(recordname: RcordName, duration: 0.0, date: date, transcript: finalText, audiofile: url)
+//        //add record to arr
+//        context.insert(newRecord)
+//        print("📦📦📦📦📦📦OBJECT CREATED")
+//    }
+    
+    // MARK: - Save new record
+    func addRecord(RcordName: String, duration: Double, date: Date, finalText: String, url: URL) {
+
+        guard let context else {
+            print("❌ ERROR: No ModelContext found.")
+            return
+        }
+
+        let newRecord = RecordingModel(
+            recordname: RcordName,
+            duration: duration,
+            date: date,
+            transcript: finalText,
+            audiofile: url
+        )
+
+        context.insert(newRecord)
+
+        print("📦 Record saved:", RcordName)
     }
 }

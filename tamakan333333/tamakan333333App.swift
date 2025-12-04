@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-
+import SwiftData
 @main
 struct tamakan333333App: App {
     @StateObject private var recViewModel = RecViewModel()
@@ -15,6 +15,6 @@ struct tamakan333333App: App {
         WindowGroup {
             recView()
                 .environmentObject(recViewModel)
-        }
+        }.modelContainer(for: RecordingModel.self)
     }
 }
