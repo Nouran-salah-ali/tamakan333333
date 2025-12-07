@@ -88,10 +88,7 @@ class AudioRecordingViewModel: ObservableObject {
             guard let self = self else { return }
 
             
-            // Detect blocking BEFORE doing anything else
-            if self.detectBlocking(in: buffer, format: format) {
-                print("⛔ BLOCKING DETECTED (silent gap)")
-            }
+
             // Write buffer to main recording file
             do {
                 try self.audioFile?.write(from: buffer)
@@ -162,22 +159,34 @@ class AudioRecordingViewModel: ObservableObject {
 
                 let results = try await whisper.transcribe(audioPath: url.path)
                 let text = results.first?.text ?? ""
+                let raw = results.first?.text ?? ""
 
                 DispatchQueue.main.async {
-                    if !text.isEmpty {
-                        self.finalText += text + " "
+//                    if !text.isEmpty {
+//                        self.finalText += text + " "
                         
-                        // 👇 Detect stuttering
-                        if self.analyzeStutter(text) {
-                            print("🟥 Stuttering found in chunk")
-                            // you can show alert / highlight / save event
-                        } else {
-                            print("🟩 No stuttering")
+                        // 1️⃣ Detect blocking (before cleaning)
+                        if self.detectBlocking(raw) {
+                            print("⛔ BLOCKING DETECTED (silent gap)")
                         }
-                        print("🟢 Transcribed:", text)
-                    } else {
-                        print("⚠️ Empty transcription")
-                    }
+
+                        // 2️⃣ Clean text from Whisper metadata
+                        let cleaned = self.removeWhisperMetadata(from: raw)
+
+                        // 3️⃣ Add only real human speech to UI
+                        if !cleaned.isEmpty {
+                            self.finalText += cleaned + " "
+                        }
+
+                        // 4️⃣ Stutter detection using cleaned version (optional)
+                        if self.analyzeStutter(cleaned) {
+                            print("🟥 Stuttering detected")
+                        }
+                        print("🟢🟢 Transcribed RAW:" , text)
+                        print("🟢 Transcribed:" , cleaned)
+//                    } else {
+//                        print("⚠️ Empty transcription")
+//                    }
                 }
 
             } catch {
@@ -256,24 +265,49 @@ class AudioRecordingViewModel: ObservableObject {
         print("📦 Record saved:", RcordName)
     }
     
+    
+    
+    
     func analyzeStutter(_ rawText: String) -> Bool {
-        // 1️⃣ Normalize text
-        let text = rawText
-            .lowercased()
-            .replacingOccurrences(of: "[^a-zA-Z0-9\\s-]", with: "", options: .regularExpression) // remove punctuation
-            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)            // collapse spaces
+        let t = rawText.lowercased()
+        
+        // --------------------------------
+        // 1️⃣ Whisper explicit annotations
+        // --------------------------------
+        if t.contains("[stutter") || t.contains("(stutter") || t.contains("stuttering") ||
+           t.range(of: #"\[[a-z]\]"#, options: .regularExpression) != nil {
+            print("🟥 STUTTER DETECTED (Whisper tag) →", rawText)
+            return true
+        }
 
-        // 2️⃣ Patterns
-        let soundPattern = #"\b([a-zA-Z])-\1-\1"#     // b-b-b
-        let syllablePattern = #"\b([a-zA-Z]{1,})-\1"# // ta-ta
-        let wordPattern = #"\b(\w+)\s+\1\s+\1"#       // hi hi hi
+        // --------------------------------
+        // 2️⃣ Clean text for regex detection
+        // --------------------------------
+        let text = t
+            .replacingOccurrences(of: "\\.+", with: " ", options: .regularExpression)   // remove "..."
+            .replacingOccurrences(of: "[^a-z0-9\\s-]", with: "", options: .regularExpression) // remove punctuation
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)  // collapse spaces
 
-        let patterns = [soundPattern, syllablePattern, wordPattern]
+        // --------------------------------
+        // 3️⃣ Regex patterns
+        // --------------------------------
+        // Repeated WORDS: talk talk talk
+        let repeatedWord = #"\b(\w+)(?:\s+\1){1,}\b"#
 
-        // 3️⃣ Check patterns
+        // Repeated SYLLABLES: ta ta, com com (2-6 letters)
+        let repeatedSyllable = #"\b([a-z]{2,6})\s+\1\b"#
+
+        // Repeated LETTERS: sss, ffff
+        let longRepeat = #"\b([a-z])\1{2,}\b"#
+
+        // Dash-style: b-b-b, D-D-D-D-D
+        let dashRepeat = #"\b([a-z])-+\1(?:-+\1){2,}\b"#
+
+        let patterns = [repeatedWord, repeatedSyllable, longRepeat, dashRepeat]
+
         for pattern in patterns {
-            if let _ = text.range(of: pattern, options: .regularExpression) {
-                print("⚠️ STUTTER DETECTED:", rawText)
+            if text.range(of: pattern, options: .regularExpression) != nil {
+                print("🟥 STUTTER DETECTED (pattern) →", rawText)
                 return true
             }
         }
@@ -281,22 +315,26 @@ class AudioRecordingViewModel: ObservableObject {
         return false
     }
     
-    func detectBlocking(in buffer: AVAudioPCMBuffer, format: AVAudioFormat) -> Bool {
-        let channel = buffer.floatChannelData![0]
-        let frameCount = Int(buffer.frameLength)
+    ////////////////////////////////////////////////////
+    
 
-        let silenceThreshold: Float = 0.0005   // detect near-silence
-        var silentSamples = 0
+    func removeWhisperMetadata(from text: String) -> String {
+        let bracketPattern = #"[\(\[\{\<][^\)\]\}\>]*[\)\]\}\>]"#
+        let wordPattern = #"\b(laughs|sigh|sighs|noise|sizzling|stuttering)\b"#
 
-        for i in 0..<frameCount {
-            if abs(channel[i]) < silenceThreshold {
-                silentSamples += 1
-            }
-        }
-
-        let duration = Double(silentSamples) / format.sampleRate
-
-        // If silence > 0.14 seconds inside speech → possible block
-        return duration > 0.14
+        return text
+            .replacingOccurrences(of: bracketPattern, with: "", options: .regularExpression)
+            .replacingOccurrences(of: wordPattern, with: "", options: .regularExpression)
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
+    
+    func detectBlocking(_ text: String) -> Bool {
+        let lower = text.lowercased()
+
+        return lower.contains("[blank") ||
+               lower.contains("[silence") ||
+               lower.contains("[no_speech")
+    }
+
 }
