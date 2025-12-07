@@ -87,6 +87,11 @@ class AudioRecordingViewModel: ObservableObject {
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
             guard let self = self else { return }
 
+            
+            // Detect blocking BEFORE doing anything else
+            if self.detectBlocking(in: buffer, format: format) {
+                print("⛔ BLOCKING DETECTED (silent gap)")
+            }
             // Write buffer to main recording file
             do {
                 try self.audioFile?.write(from: buffer)
@@ -161,6 +166,14 @@ class AudioRecordingViewModel: ObservableObject {
                 DispatchQueue.main.async {
                     if !text.isEmpty {
                         self.finalText += text + " "
+                        
+                        // 👇 Detect stuttering
+                        if self.analyzeStutter(text) {
+                            print("🟥 Stuttering found in chunk")
+                            // you can show alert / highlight / save event
+                        } else {
+                            print("🟩 No stuttering")
+                        }
                         print("🟢 Transcribed:", text)
                     } else {
                         print("⚠️ Empty transcription")
@@ -241,5 +254,49 @@ class AudioRecordingViewModel: ObservableObject {
         context.insert(newRecord)
 
         print("📦 Record saved:", RcordName)
+    }
+    
+    func analyzeStutter(_ rawText: String) -> Bool {
+        // 1️⃣ Normalize text
+        let text = rawText
+            .lowercased()
+            .replacingOccurrences(of: "[^a-zA-Z0-9\\s-]", with: "", options: .regularExpression) // remove punctuation
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)            // collapse spaces
+
+        // 2️⃣ Patterns
+        let soundPattern = #"\b([a-zA-Z])-\1-\1"#     // b-b-b
+        let syllablePattern = #"\b([a-zA-Z]{1,})-\1"# // ta-ta
+        let wordPattern = #"\b(\w+)\s+\1\s+\1"#       // hi hi hi
+
+        let patterns = [soundPattern, syllablePattern, wordPattern]
+
+        // 3️⃣ Check patterns
+        for pattern in patterns {
+            if let _ = text.range(of: pattern, options: .regularExpression) {
+                print("⚠️ STUTTER DETECTED:", rawText)
+                return true
+            }
+        }
+
+        return false
+    }
+    
+    func detectBlocking(in buffer: AVAudioPCMBuffer, format: AVAudioFormat) -> Bool {
+        let channel = buffer.floatChannelData![0]
+        let frameCount = Int(buffer.frameLength)
+
+        let silenceThreshold: Float = 0.0005   // detect near-silence
+        var silentSamples = 0
+
+        for i in 0..<frameCount {
+            if abs(channel[i]) < silenceThreshold {
+                silentSamples += 1
+            }
+        }
+
+        let duration = Double(silentSamples) / format.sampleRate
+
+        // If silence > 0.14 seconds inside speech → possible block
+        return duration > 0.14
     }
 }
